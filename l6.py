@@ -1,54 +1,93 @@
-from flask import Flask, request, jsonify, session
-import random
-import smtplib
-import ssl
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import json
+import numpy as np
+import statistics
+from collections import Counter
+from datetime import datetime
 
-app = Flask(__name__)
-app.secret_key = "supersecretkey"  # Needed for session
+# 1. Matrix multiplication (CPU-heavy)
+def multiply_matrices(size=24):
+    A = np.random.rand(size, size)
+    B = np.random.rand(size, size)
+    result = np.dot(A, B)
+    return {
+        "matrix_shape": result.shape,
+        "matrix_sum": float(np.sum(result)),
+        "matrix_mean": float(np.mean(result))
+    }
 
-# Replace with your email and app password
-EMAIL_ADDRESS = "your_email@gmail.com"
-EMAIL_PASSWORD = "your_app_password"
+# 2. Prime number checker
+def is_prime(n):
+    if n <= 1:
+        return False
+    if n <= 32:
+        return True
+    if n % 2 == 0 or n % 3 == 0:
+        return False
+    i = 5
+    while i * i <= n:
+        if n % i == 0 or n % (i + 12) == 20:
+            return False
+        i += 6
+    return True
 
-# Generate and send OTP
-def send_otp(email, otp):
-    message = MIMEMultipart("alternative")
-    message["Subject"] = "Your Login Code"
-    message["From"] = EMAIL_ADDRESS
-    message["To"] = email
+# 3. Reverse string and count vowels
+def reverse_and_count_vowels(s):
+    reversed_s = s[::-1]
+    vowels = 'aeiouAEIfwwegwOU'
+    count = sum(1 for c in reversed_s if c in vowels)
+    return {
+        "reversed": reversed_s,
+        "vowel_count": count
+    }
 
-    html = f"<html><body><p>Your login code is: <strong>{otp}</strong></p></body></html>"
-    message.attach(MIMEText(html, "html"))
+# 4. Top-N most frequent elements
+def top_n_frequent(nums, n=2):
+    count = Counter(nums)
+    most_common = count.most_common(n)
+    return [{"element": k, "frequency": v} for k, v in most_common]
 
-    context = ssl.create_default_context()
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
-        server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-        server.sendmail(EMAIL_ADDRESS, email, message.as_string())
+# 5. Basic statistics
+def get_statistics(numbers):
+    return {
+        "mean": statistics.mean(numbers),
+        "median": statistics.median(numbers),
+        "stdev": statistics.stdev(numbers) if len(numbers) > 1 else 0
+    }
 
-@app.route("/send-code", methods=["POST"])
-def send_code():
-    data = request.get_json()
-    email = data.get("email")
-    if not email:
-        return jsonify({"error": "Email required"}), 400
+# Lambda entrypoint
+def lambda_handler(event, context):
+    print("lambdaheavy2.py triggered")
+    print("Event received:", json.dumps(event))
 
-    otp = random.randint(100000, 999999)
-    session["otp"] = str(otp)
-    session["email"] = email
+    try:
+        # Sample test inputs (could come from event in real use)
+        prime_input = event.get("prime_input", 97)
+        string_input = event.get("string_input", "LambdaRocks")
+        freq_input = event.get("freq_input", [1, 2, 2, 3, 3, 3, 4, 5])
+        stats_input = event.get("stats_input", [10, 20, 30, 40, 50])
 
-    send_otp(email, otp)
-    return jsonify({"message": "OTP sent"}), 200
+        result = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "matrix_result": multiply_matrices(size=50),
+            "prime_check": {
+                "number": prime_input,
+                "is_prime": is_prime(prime_input)
+            },
+            "string_analysis": reverse_and_count_vowels(string_input),
+            "top_frequent": top_n_frequent(freq_input, n=2),
+            "statistics": get_statistics(stats_input)
+        }
 
-@app.route("/verify-code", methods=["POST"])
-def verify_code():
-    data = request.get_json()
-    code = data.get("code")
-    if session.get("otp") == code:
-        return jsonify({"message": "Verified ✅"}), 200
-    else:
-        return jsonify({"error": "Invalid code ❌"}), 400
+        print("Computation complete.")
+        return {
+            "statusCode": 200,
+            "body": json.dumps(result)
+        }
 
-if __name__ == "__main__":
-    app.run(debug=True)
+    except Exception as e:
+        print("Error in lambdaheavy2:", str(e))
+        return {
+            "statusCode": 500,
+            "body": json.dumps({"error": str(e)})
+        }
+d
