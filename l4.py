@@ -33,7 +33,7 @@ def is_prime(n):
 # 3. Reverse string and count vowels
 def reverse_and_count_vowels(s):
     reversed_s = s[::-1]
-    vowels = 'aeiouAEIOU'
+    vowels = 'aeiouAEIfwwegwOU'
     count = sum(1 for c in reversed_s if c in vowels)
     return {
         "reversed": reversed_s,
