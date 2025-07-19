@@ -1,59 +1,68 @@
-from typing import List, Tuple, Any
 
-def is_palindrome(s: str) -> bool:
-    s_clean = ''.join(ch.lower() for ch in s if ch.isalnum())
-    return s_clean == s_clean[::-1]
 
-def sieve_of_eratosthenes(n: int) -> List[int]:
-    if n < 2:
-        return []
-    sieve = [True] * (n + 1)
-    sieve[0] = sieve[1] = False
-    for i in range(2, int(n**0.5) + 1):
-        if sieve[i]:
-            for j in range(i*i, n+1, i):
-                sieve[j] = False
-    return [i for i, prime in enumerate(sieve) if prime]
 
-def merge_intervals(intervals: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
-    if not intervals:
-        return []
-    sorted_intervals = sorted(intervals, key=lambda x: x[0])
-    merged = [sorted_intervals[0]]
-    for current in sorted_intervals[1:]:
-        prev_start, prev_end = merged[-1]
-        curr_start, curr_end = current
-        if curr_start <= prev_end:
-            merged[-1] = (prev_start, max(prev_end, curr_end))
-        else:
-            merged.append(current)
-    return merged
+import numpy as np
+import matplotlib.pyplot as plt
 
-def flatten(nested: List[Any]) -> List[Any]:
-    result = []
-    for item in nested:
-        if isinstance(item, list):
-            result.extend(flatten(item))
-        else:
-            result.append(item)
-    return result
+def simulate_drunken_star_orbit(
+    M_black_hole=8e30,
+    initial_pos=(1.5e11, 0),
+    initial_vel=(0, 29780),
+    drunk_noise=0.0001,
+    dt=60,
+    steps=5000
+):
+    """
+    Simulates the orbit of a star around a black hole with quantum drunk noise.
 
-class Stack:
-    def __init__(self):
-        self._data: List[Any] = []
+    Parameters:
+    - M_black_hole: Mass of black hole (kg)
+    - initial_pos: Initial position tuple (x, y) in meters
+    - initial_vel: Initial velocity tuple (vx, vy) in m/s
+    - drunk_noise: Standard deviation of Gaussian noise multiplier
+    - dt: Time step in seconds
+    - steps: Number of simulation steps
+    """
+    G = 6.67430e-11
+    pos = np.array(initial_pos, dtype=float)
+    vel = np.array(initial_vel, dtype=float)
+    positions = []
 
-    def push(self, item: Any) -> None:
-        self._data.append(item)
+    for _ in range(steps):
+        r = np.linalg.norm(pos)
+        direction = pos / r
+        F = -G * M_black_hole / r**2
+        noise = 1 + np.random.normal(0, drunk_noise)
+        acceleration = F * direction * noise
+        vel += acceleration * dt
+        pos += vel * dt
+        positions.append(pos.copy())
 
-    def pop(self) -> Any:
-        if not self._data:
-            raise IndexError("pop from empty stack")
-        return self._data.pop()
+    positions = np.array(positions)
+    plt.figure(figsize=(8, 8))
+    plt.plot(positions[:, 0], positions[:, 1], color='orange')
+    plt.plot(0, 0, 'k*', markersize=15, label="Black Hole")
+    plt.title("Quantum-Drunk Star Orbit Simulation")
+    plt.axis("equal")
+    plt.xlabel("X Position (m)")
+    plt.ylabel("Y Position (m)")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
 
-    def peek(self) -> Any:
-        if not self._data:
-            raise IndexError("peek from empty stack")
-        return self._data[-1]
+# Call the function
+simulate_drunken_star_orbit()
+# complex_functions.py
 
-    def is_empty(self) -> bool:
-        return not self._data
+
+def traverse_tree(node: Dict[str, Any], visit_fn) -> None:
+    """
+    Recursively traverse a nested tree represented as dicts with 'children' lists.
+    Calls `visit_fn(node)` for each node.
+    """
+    visit_fn(node)
+    for child in node.get("children", []):
+        traverse_tree(child, visit_fn)
+
+
+
