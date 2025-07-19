@@ -1,55 +1,54 @@
+from flask import Flask, request, jsonify, session
+import random
+import smtplib
+import ssl
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
+app = Flask(__name__)
+app.secret_key = "supersecretkey"  # Needed for session
 
+# Replace with your email and app password
+EMAIL_ADDRESS = "your_email@gmail.com"
+EMAIL_PASSWORD = "your_app_password"
 
+# Generate and send OTP
+def send_otp(email, otp):
+    message = MIMEMultipart("alternative")
+    message["Subject"] = "Your Login Code"
+    message["From"] = EMAIL_ADDRESS
+    message["To"] = email
 
-import numpy as np
-import matplotlib.pyplot as plt
+    html = f"<html><body><p>Your login code is: <strong>{otp}</strong></p></body></html>"
+    message.attach(MIMEText(html, "html"))
 
-def simulate_drunken_star_orbit(
-    M_black_hole=8e30,
-    initial_pos=(1.5e11, 0),
-    initial_vel=(0, 29780),
-    drunk_noise=0.0001,
-    dt=60,
-    steps=5000
-):
-    """
-    Simulates the orbit of a star around a black hole with quantum drunk noise.
+    context = ssl.create_default_context()
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
+        server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+        server.sendmail(EMAIL_ADDRESS, email, message.as_string())
 
-    Parameters:
-    - M_black_hole: Mass of black hole (kg)
-    - initial_pos: Initial position tuple (x, y) in meters
-    - initial_vel: Initial velocity tuple (vx, vy) in m/s
-    - drunk_noise: Standard deviation of Gaussian noise multiplier
-    - dt: Time step in seconds
-    - steps: Number of simulation steps
-    """
-    G = 6.67430e-11
-    pos = np.array(initial_pos, dtype=float)
-    vel = np.array(initial_vel, dtype=float)
-    positions = []
+@app.route("/send-code", methods=["POST"])
+def send_code():
+    data = request.get_json()
+    email = data.get("email")
+    if not email:
+        return jsonify({"error": "Email required"}), 400
 
-    for _ in range(steps):
-        r = np.linalg.norm(pos)
-        direction = pos / r
-        F = -G * M_black_hole / r**2
-        noise = 1 + np.random.normal(0, drunk_noise)
-        acceleration = F * direction * noise
-        vel += acceleration * dt
-        pos += vel * dt
-        positions.append(pos.copy())
+    otp = random.randint(100000, 999999)
+    session["otp"] = str(otp)
+    session["email"] = email
 
-    positions = np.array(positions)
-    plt.figure(figsize=(8, 8))
-    plt.plot(positions[:, 0], positions[:, 1], color='orange')
-    plt.plot(0, 0, 'k*', markersize=15, label="Black Hole")
-    plt.title("Quantum-Drunk Star Orbit Simulation")
-    plt.axis("equal")
-    plt.xlabel("X Position (m)")
-    plt.ylabel("Y Position (m)")
-    plt.legend()
-    plt.grid(True)
-    plt.show()
+    send_otp(email, otp)
+    return jsonify({"message": "OTP sent"}), 200
 
-# Call the function
-simulate_drunken_star_orbit()
+@app.route("/verify-code", methods=["POST"])
+def verify_code():
+    data = request.get_json()
+    code = data.get("code")
+    if session.get("otp") == code:
+        return jsonify({"message": "Verified ✅"}), 200
+    else:
+        return jsonify({"error": "Invalid code ❌"}), 400
+
+if __name__ == "__main__":
+    app.run(debug=True)
