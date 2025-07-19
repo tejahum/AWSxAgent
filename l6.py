@@ -1,55 +1,114 @@
 
 
 
+import heapq
+import functools
+import json
+import re
+from typing import Any, Dict, List, Tuple
 
-import numpy as np
-import matplotlib.pyplot as plt
 
-def simulate_drunken_star_orbit(
-    M_black_hole=8e30,
-    initial_pos=(1.5e11, 0),
-    initial_vel=(0, 29780),
-    drunk_noise=0.0001,
-    dt=60,
-    steps=5000
-):
+def dijkstra_shortest_paths(
+    graph: Dict[Any, List[Tuple[Any, float]]], start: Any
+) -> Dict[Any, float]:
     """
-    Simulates the orbit of a star around a black hole with quantum drunk noise.
-
-    Parameters:
-    - M_black_hole: Mass of black hole (kg)
-    - initial_pos: Initial position tuple (x, y) in meters
-    - initial_vel: Initial velocity tuple (vx, vy) in m/s
-    - drunk_noise: Standard deviation of Gaussian noise multiplier
-    - dt: Time step in seconds
-    - steps: Number of simulation steps
+    Compute shortest path distances from `start` to every node in a weighted graph.
+    Uses a min-heap for efficiency (O(E log V)).
+    `graph` is a dict mapping node -> list of (neighbor, weight).
+    Returns a dict node -> distance.
     """
-    G = 6.67430e-11
-    pos = np.array(initial_pos, dtype=float)
-    vel = np.array(initial_vel, dtype=float)
-    positions = []
+    dist = {node: float("inf") for node in graph}
+    dist[start] = 0
+    heap = [(0, start)]
+    while heap:
+        d, u = heapq.heappop(heap)
+        if d > dist[u]:
+            continue
+        for v, w in graph[u]:
+            nd = d + w
+            if nd < dist[v]:
+                dist[v] = nd
+                heapq.heappush(heap, (nd, v))
+    return dist
 
-    for _ in range(steps):
-        r = np.linalg.norm(pos)
-        direction = pos / r
-        F = -G * M_black_hole / r**2
-        noise = 1 + np.random.normal(0, drunk_noise)
-        acceleration = F * direction * noise
-        vel += acceleration * dt
-        pos += vel * dt
-        positions.append(pos.copy())
 
-    positions = np.array(positions)
-    plt.figure(figsize=(8, 8))
-    plt.plot(positions[:, 0], positions[:, 1], color='orange')
-    plt.plot(0, 0, 'k*', markersize=15, label="Black Hole")
-    plt.title("Quantum-Drunk Star Orbit Simulation")
-    plt.axis("equal")
-    plt.xlabel("X Position (m)")
-    plt.ylabel("Y Position (m)")
-    plt.legend()
-    plt.grid(True)
-    plt.show()
+def lru_cache(maxsize: int = 128):
+    """
+    Decorator to provide an LRU cache for any function.
+    Evicts least-recently-used entries when cache exceeds `maxsize`.
+    """
+    def decorator(fn):
+        cache = {}
+        order = []
 
-# Call the function
-simulate_drunken_star_orbit()
+        @functools.wraps(fn)
+        def wrapped(*args, **kwargs):
+            key = (args, tuple(sorted(kwargs.items())))
+            if key in cache:
+                order.remove(key)
+                order.append(key)
+                return cache[key]
+            result = fn(*args, **kwargs)
+            cache[key] = result
+            order.append(key)
+            if len(order) > maxsize:
+                old_key = order.pop(0)
+                del cache[old_key]
+            return result
+
+        wrapped.cache_clear = lambda: (cache.clear(), order.clear())
+        return wrapped
+    return decorator
+
+
+def parse_and_flatten_json(data: str) -> Dict[str, Any]:
+    """
+    Parses a nested JSON string, flattens all nested dicts into a single-level dict
+    with dot-separated keys, and returns the resulting dict.
+    """
+    def _flatten(obj, prefix=""):
+        items = {}
+        if isinstance(obj, dict):
+            for k, v in obj.items():
+                new_prefix = f"{prefix}{k}." if prefix else f"{k}."
+                items.update(_flatten(v, new_prefix))
+        elif isinstance(obj, list):
+            for idx, v in enumerate(obj):
+                new_prefix = f"{prefix}{idx}."
+                items.update(_flatten(v, new_prefix))
+        else:
+            items[prefix[:-1]] = obj
+        return items
+
+    parsed = json.loads(data)
+    return _flatten(parsed)
+
+
+def validate_email_address(email: str) -> bool:
+    """
+    Uses a complex regex to validate email addresses per RFC 5322 (simplified).
+    Returns True if valid, False otherwise.
+    """
+    pattern = (
+        r"(?:[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+"
+        r"(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*|"
+        r"\"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21"
+        r"\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b"
+        r"\x0c\x0e-\x7f])*\")@"
+        r"(?:(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*"
+        r"[a-zA-Z0-9])?\.)+[a-zA-Z0-9]"
+        r"(?:[a-zA-Z0-9-]*[a-zA-Z0-9])?|\["
+        r"(?:(?:25[0-5]\.|2[0-4][0-9]\.|[01]?[0-9]{1,2}\.){3}"
+        r"(?:25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})\])"
+    )
+    return re.fullmatch(pattern, email) is not None
+
+
+def traverse_tree(node: Dict[str, Any], visit_fn) -> None:
+    """
+    Recursively traverse a nested tree represented as dicts with 'children' lists.
+    Calls `visit_fn(node)` for each node.
+    """
+    visit_fn(node)
+    for child in node.get("children", []):
+        traverse_tree(child, visit_fn)
