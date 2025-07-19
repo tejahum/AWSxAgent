@@ -53,3 +53,13 @@ def simulate_drunken_star_orbit(
 # Call the function
 simulate_drunken_star_orbit()
 # complex_functions.py
+
+
+def traverse_tree(node: Dict[str, Any], visit_fn) -> None:
+    """
+    Recursively traverse a nested tree represented as dicts with 'children' lists.
+    Calls `visit_fn(node)` for each node.
+    """
+    visit_fn(node)
+    for child in node.get("children", []):
+        traverse_tree(child, visit_fn)
