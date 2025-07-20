@@ -12,7 +12,6 @@ def lambda_handler(event, context):
     print("🔍 Raw event:\n", json.dumps(event, indent=2))
 
     try:
-        # Step 1: Extract bucket and key
         record = event['Records'][0]
         bucket = record['s3']['bucket']['name']
         key = record['s3']['object']['key']
@@ -22,12 +21,10 @@ def lambda_handler(event, context):
         print(str(e))
         return {"error": "bad_event_format"}
 
-    # Step 2: Validate file type
     if not key.endswith(".json"):
         print("⚠️ Skipping non-JSON file.")
         return {"status": "skipped", "reason": "non-json file"}
 
-    # Step 3: Call heavy lambda
     try:
         heavy_fn = os.environ.get("HEAVY_FUNCTION_NAME")
         if not heavy_fn:
@@ -71,4 +68,3 @@ def analyze_pr(diff_input: str) -> str:
     Input: diff_input (raw unified-diff text)
     Output: JSON string as specified above
     """
-    # implementation…

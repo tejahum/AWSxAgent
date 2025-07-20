@@ -19,7 +19,6 @@ def knight_moves(square: str) -> List[str]:
     for dx, dy in deltas:
         nx, ny = x + dx, y + dy
         if 1 <= nx <= 8 and 1 <= ny <= 8:
-            # convert back to algebraic
             file_char = list(files.keys())[list(files.values()).index(nx)]
             rank_char = str(ny)
             moves.append(f"{file_char}{rank_char}")
