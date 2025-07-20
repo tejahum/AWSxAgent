@@ -74,16 +74,12 @@ def main():
     input_key = f"scenario_inputs/test_job_{uuid.uuid4().hex[:6]}.json"
     output_key = input_key.replace("scenario_inputs", "results")
 
-    # Step 1: Prepare input
     payload = generate_input_payload(matrix_size)
 
-    # Step 2: Upload input file
     upload_input_file(payload, input_key)
 
-    # Step 3: Trigger Lambda 1 manually (simulate S3 event)
     invoke_light_lambda(INPUT_BUCKET, input_key)
 
-    # Step 4: Wait and fetch result from output bucket
     poll_for_result(output_key)
 
 
