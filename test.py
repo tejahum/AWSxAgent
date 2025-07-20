@@ -4,7 +4,6 @@ import time
 import uuid
 from datetime import datetime
 
-# ---------- Config ----------
 INPUT_BUCKET = "f1p1-input-bucket"
 OUTPUT_BUCKET = "f1p1-output-bucket"
 LIGHT_LAMBDA_NAME = "lambda-light-function-name"  # Replace with actual name

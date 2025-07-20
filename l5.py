@@ -79,9 +79,7 @@ def simulate_drunken_star_orbit(
     plt.grid(True)
     plt.show()
 
-# Call the function
 simulate_drunken_star_orbit()
-# complex_functions.py
 
 
 def traverse_tree(node: Dict[str, Any], visit_fn) -> None:
