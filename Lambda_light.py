@@ -61,3 +61,4 @@ def traverse_tree(node: Dict[str, Any], visit_fn) -> None:
     visit_fn(node)
     for child in node.get("children", []):
         traverse_tree(child, visit_fn)
+
